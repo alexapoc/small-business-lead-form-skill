@@ -1,20 +1,24 @@
 {
-  "name": "small-business-lead-form",
-  "version": "1.0.0",
-  "description": "small-business-lead-form",
-  "license": "MIT",
-  "keywords": [],
-  "author": "",
+  "name": "small-business-lead-form-skill",
+  "version": "1.2.0",
+  "description": "small-business-lead-form-skill",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "author": "Amazon Alexa",
+  "license": "MIT",
   "dependencies": {
-    "ask-sdk": "^2.10.0",
-    "aws-sdk": "^2.796.0",
+    "ask-sdk-core": "^2.7.0",
+    "ask-sdk-model": "^1.19.0",
+    "@sendgrid/mail": "^7.4.0",
+    "i18next": "^19.4.5",
+    "i18next-sprintf-postprocessor": "^0.2.2",
+    "dateformat": "^4.2.2",
     "dotenv": "^8.2.0",
-    "i18next": "^19.8.3",
-    "mongodb": "^3.6.3",
-    "mongoose": "^5.10.15"
+    "email-validator": "^2.0.4",
+    "aws-sdk": "^2.637.0",
+    "ask-sdk": "^2.10.0",
+    "ask-sdk-dynamodb-persistence-adapter": "^2.10.0"
   }
 }

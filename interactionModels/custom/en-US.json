@@ -89,21 +89,12 @@
             },
             {
               "name": "emailAddress",
-              "type": "EmailAddress",
-              "samples": [
-                "email address {emailAddress}",
-                "mail id {emailAddress}",
-                "email id {emailAddress}",
-                "My email id {emailAddress}",
-                "My email id is {emailAddress} ",
-                "My email is {emailAddress}",
-                "{emailAddress}",
-                "My Email {emailAddress}",
-                "My Email address {emailAddress}"
-              ]
+              "type": "AMAZON.SearchQuery"
             }
           ],
           "samples": [
+            "{firstName} {lastName}",
+            "my email is {emailAddress}",
             "{yesNoOption}",
             "{financingOption}",
             "Option {financingOption}",
@@ -127,11 +118,7 @@
             "My telephone number is {contactNumber}",
             "My contact number is {contactNumber}",
             "Contact number is {contactNumber}",
-            "{contactNumber}",
-            "Email address {emailAddress}",
-            "My Email {emailAddress}",
-            "My Email address {emailAddress}",
-            "{emailAddress}"
+            "{contactNumber}"
           ]
         }
       ],
@@ -215,16 +202,6 @@
             }
           ],
           "name": "YesNoOption"
-        },
-        {
-          "values": [
-            {
-              "name": {
-                "value": "aa@gmail.com"
-              }
-            }
-          ],
-          "name": "EmailAddress"
         }
       ],
       "modelConfiguration": {
@@ -293,14 +270,13 @@
             },
             {
               "name": "emailAddress",
-              "type": "EmailAddress",
-              "elicitationRequired": true,
+              "type": "AMAZON.SearchQuery",
+              "elicitationRequired": false,
               "confirmationRequired": false,
-              "prompts": {
-                "elicitation": "Elicit.Slot.826743136434.854949061387"
-              }
+              "prompts": {}
             }
-          ]
+          ],
+          "delegationStrategy": "ALWAYS"
         }
       ],
       "delegationStrategy": "ALWAYS"
@@ -399,5 +375,5 @@
       }
     ]
   },
-  "version": "39"
+  "version": "50"
 }

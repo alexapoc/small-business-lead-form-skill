@@ -1,31 +1,42 @@
-/* *
- * This sample demonstrates handling intents from an Alexa skill using the Alexa Skills Kit SDK (v2).
- * Please visit https://alexa.design/cookbook for additional examples on implementing slots, dialog management,
- * session persistence, api calls, and more.
- * */
-const Alexa = require('ask-sdk');
+const i18n = require('i18next');
+const sprintf = require('i18next-sprintf-postprocessor');
+const Alexa = require('ask-sdk-core');
+const dateFormat = require('dateformat');
+const EmailValidator = require('email-validator');
+const AWS = require('aws-sdk');
+const ddbAdapter = require('ask-sdk-dynamodb-persistence-adapter');
 
-//const dbHelper = require('dbHelper');
+require("dotenv").config();
+
+/* LANGUAGE STRINGS */
+const languageStrings = require('./languages/languageStrings');
+
+const InvalidConfigHandler = {
+    canHandle(handlerInput) {
+        const attributes = handlerInput.attributesManager.getRequestAttributes();
+        return attributes.invalidConfig || false;
+    },
+    handle(handlerInput) {
+        const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
+        return handlerInput.responseBuilder.speak(requestAttributes.t('ENV_NOT_CONFIGURED')).getResponse();
+    }
+}
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
+        const request = handlerInput.requestEnvelope.request;
+        return request.type === 'LaunchRequest'
     },
     handle(handlerInput) {
-        const speakOutput = `What is the financing option that interests you? 
-                    Commercial Real Estate or say 1, 
-                    Loans or say 2, 
-                    Lines of Credit or say 3`;
-      //  const speakOutput ="Let's start lead form";
-
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt(speakOutput)
-            .getResponse();
-    }
+        const responseBuilder = handlerInput.responseBuilder;
+        const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
+        const speakOutput = requestAttributes.t('GREETING');
+        return responseBuilder
+            .speak(speakOutput).reprompt(requestAttributes.t('GREETING_REPROMPT')).getResponse();
+    },
 };
 
-const InProgressSmallBusinessLeadFormIntent = {
+const InProgressLeadFormIntentHandler = {
     canHandle(handlerInput) {
         const request = handlerInput.requestEnvelope.request;
         return request.type === 'IntentRequest'
@@ -34,180 +45,261 @@ const InProgressSmallBusinessLeadFormIntent = {
     },
     handle(handlerInput) {
         const currentIntent = handlerInput.requestEnvelope.request.intent;
-        return handlerInput.responseBuilder
-            .addDelegateDirective(currentIntent)
-            .getResponse();
-        // return handlerInput.responseBuilder
-        //     .speak("fddddd")
-        //     .reprompt('ffff')
-        //     .getResponse();
-    }
+        return handlerInput.responseBuilder.addDelegateDirective(currentIntent).getResponse();
+    },
 };
 
-const ValidateContactNumber = {
+const YesNoOptionIntentHandler = {
     canHandle(handlerInput) {
         const request = handlerInput.requestEnvelope.request;
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'SmallBusinessLeadFormIntent'
-            && request.dialogState !== 'COMPLETED'
-            && request.slots.financingOption.value;
+        return request.type === 'IntentRequest'
+            && request.intent.name === 'SmallBusinessLeadFormIntent'
+            && request.intent.slots.yesNoOption.value
+            && (request.intent.slots.yesNoOption.value === 'yes' || request.intent.slots.yesNoOption.value === 'Yes')
+            && !request.intent.slots.emailAddress.value
     },
     handle(handlerInput) {
-        const currentIntent = handlerInput.requestEnvelope.request.intent;
-        const speakOutput = 'Valid mobile' ;
-        
-            return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt('add a reprompt if you want to keep the session open for the user to respond')
-            .getResponse();
-    }
+        const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
+        return handlerInput.responseBuilder
+            .speak(requestAttributes.t('EMAIL_ADDRESS'))
+            .reprompt(requestAttributes.t('EMAIL_ADDRESS_REPROMPT'))
+            .addElicitSlotDirective('emailAddress').getResponse();
+    },
 };
 
-const SmallBusinessLeadFormIntent = {
+const EmailIntentHandler = {
     canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'SmallBusinessLeadFormIntent';
+        const request = handlerInput.requestEnvelope.request;
+        return request.type === 'IntentRequest'
+            && request.intent.name === 'SmallBusinessLeadFormIntent' &&
+            request.intent.slots.yesNoOption.value
+            && (request.intent.slots.yesNoOption.value === 'yes' || request.intent.slots.yesNoOption.value === 'Yes')
+            && request.intent.slots.emailAddress.value
     },
     handle(handlerInput) {
-        
-        const yesNoOption = Alexa.getSlotValue(handlerInput.requestEnvelope, 'yesNoOption');
-        // if ( 'yes' === yesNoOption) {
-        //     const currentIntent = handlerInput.requestEnvelope.request.intent;
-        
-        //     return handlerInput.responseBuilder
-        //     .addDelegateDirective(currentIntent)
-        //     .getResponse();
-        // }
-       // else {
-            const speakOutput = 'Thanks for providing the information. One of our business representative will contact you shortly' +  yesNoOption;
-        
+        const request = handlerInput.requestEnvelope.request;
+        const email = getEmail(request.intent.slots.emailAddress.value);
+        const isValid = EmailValidator.validate(email);
+
+        if (isValid) {
+            saveLeadForm(handlerInput)
+
+            const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
+            const responseBuilder = handlerInput.responseBuilder;
+            return responseBuilder.speak(requestAttributes.t('LEAD_FORM_CONFIRM')).withShouldEndSession(true).getResponse();
+        } else {
+            const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
             return handlerInput.responseBuilder
-            .speak(speakOutput)
-            //.reprompt('add a reprompt if you want to keep the session open for the user to respond')
-            .getResponse();
-       //}
+                .speak(requestAttributes.t('INVALID_EMAIL_ADDRESS'))
+                .reprompt(requestAttributes.t('INVALID_EMAIL_ADDRESS_REPROMPT'))
+                .addElicitSlotDirective('emailAddress')
+                .getResponse();
+        }
+    },
+};
+
+async function saveLeadForm(handlerInput) {
+
+    const session = handlerInput.requestEnvelope.session;
+    const leadForm = {
+        sessionId: session.sessionId,
+        applicationId: session.application.applicationId,
+        userId: session.user.userId,
+        locale: handlerInput.requestEnvelope.request.locale,
+        createDateTime: dateFormat(new Date(), 'mm/dd/yyyy HH:MM:ss'),
+        financingOption: getFinancingOption(Alexa.getSlotValue(handlerInput.requestEnvelope, 'financingOption')),
+        firstName: Alexa.getSlotValue(handlerInput.requestEnvelope, 'firstName'),
+        lastName: Alexa.getSlotValue(handlerInput.requestEnvelope, 'lastName'),
+        contactNumber: Alexa.getSlotValue(handlerInput.requestEnvelope, 'contactNumber'),
+        emailAddress: getEmail(Alexa.getSlotValue(handlerInput.requestEnvelope, 'emailAddress'))
     }
+
+    console.log("Lead form to be saved ==> " + JSON.stringify(leadForm));
+
+    const attributesManager = handlerInput.attributesManager;
+
+    attributesManager.setPersistentAttributes(leadForm);
+    await attributesManager.savePersistentAttributes();
+
+    console.log("Saved to dynamo DB == > " + JSON.stringify(leadForm));
+}
+
+const LeadFormIntentHandler = {
+    canHandle(handlerInput) {
+        const request = handlerInput.requestEnvelope.request;
+        return request.type === 'IntentRequest'
+            && request.intent.name === 'SmallBusinessLeadFormIntent'
+            && request.dialogState === "COMPLETED";
+    },
+    async handle(handlerInput) {
+        saveLeadForm(handlerInput);
+
+        const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
+        const responseBuilder = handlerInput.responseBuilder;
+        return responseBuilder.speak(requestAttributes.t('LEAD_FORM_CONFIRM')).withShouldEndSession(true).getResponse();
+    },
 };
 
 const HelpIntentHandler = {
     canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.HelpIntent';
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+            && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.HelpIntent';
     },
     handle(handlerInput) {
-        const speakOutput = 'You can say hello to me! How can I help?';
+        const speechText = 'You can say tell me';
 
         return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt(speakOutput)
+            .speak(speechText)
+            .reprompt(speechText)
             .getResponse();
-    }
+    },
 };
 
 const CancelAndStopIntentHandler = {
     canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+            && (handlerInput.requestEnvelope.request.intent.name === 'AMAZON.CancelIntent'
+                || handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StopIntent');
     },
     handle(handlerInput) {
-        const speakOutput = 'Thanks for your interest. Goodbye!';
-
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .getResponse();
-    }
-};
-/* *
- * FallbackIntent triggers when a customer says something that doesn’t map to any intents in your skill
- * It must also be defined in the language model (if the locale supports it)
- * This handler can be safely added but will be ingnored in locales that do not support it yet 
- * */
-const FallbackIntentHandler = {
-    canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.FallbackIntent';
+        const speechText = 'Goodbye!';
+        return handlerInput.responseBuilder.speak(speechText).getResponse();
     },
-    handle(handlerInput) {
-        const speakOutput = 'Sorry, I don\'t know about that. Please try again.';
-
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt(speakOutput)
-            .getResponse();
-    }
 };
-/* *
- * SessionEndedRequest notifies that a session was ended. This handler will be triggered when a currently open 
- * session is closed for one of the following reasons: 1) The user says "exit" or "quit". 2) The user does not 
- * respond or says something that does not match an intent defined in your voice model. 3) An error occurs 
- * */
+
 const SessionEndedRequestHandler = {
     canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'SessionEndedRequest';
+        return handlerInput.requestEnvelope.request.type === 'SessionEndedRequest';
     },
     handle(handlerInput) {
-        console.log(`~~~~ Session ended: ${JSON.stringify(handlerInput.requestEnvelope)}`);
-        // Any cleanup logic goes here.
-        return handlerInput.responseBuilder.getResponse(); // notice we send an empty response
-    }
+        console.log(`Session ended with reason: ${handlerInput.requestEnvelope.request.reason}`);
+        return handlerInput.responseBuilder.getResponse();
+    },
 };
-/* *
- * The intent reflector is used for interaction model testing and debugging.
- * It will simply repeat the intent the user said. You can create custom handlers for your intents 
- * by defining them above, then also adding them to the request handler chain below 
- * */
-const IntentReflectorHandler = {
-    canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest';
-    },
-    handle(handlerInput) {
-        const intentName = Alexa.getIntentName(handlerInput.requestEnvelope);
-        const speakOutput = `You just triggered ${intentName}`;
 
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            //.reprompt('add a reprompt if you want to keep the session open for the user to respond')
-            .getResponse();
-    }
-};
-/**
- * Generic error handling to capture any syntax or routing errors. If you receive an error
- * stating the request handler chain is not found, you have not implemented a handler for
- * the intent being invoked or included it in the skill builder below 
- * */
 const ErrorHandler = {
     canHandle() {
         return true;
     },
     handle(handlerInput, error) {
-        const speakOutput = 'Sorry, I had trouble doing what you asked. Please try again.';
-        console.log(`~~~~ Error handled: ${JSON.stringify(error)}`);
+        const request = handlerInput.requestEnvelope.request;
+        const errMessage = request.type + '--' + request.intent.name + '--' + request.dialogState;
+        console.log("error==> " + errMessage);
+        console.log(`Error handled: ${error.message}`);
+        //const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
+        // return handlerInput.responseBuilder
+        //     .speak(requestAttributes.t('ERROR'))
+        //     .reprompt(requestAttributes.t('ERROR_REPROMPT'))
+        //     .getResponse();
 
+        const speech = 'There is an error while processing your request';
         return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt(speakOutput)
+            .speak(speech)
+            .reprompt(speech)
             .getResponse();
-    }
+    },
 };
 
-/**
- * This handler acts as the entry point for your skill, routing all request and response
- * payloads to the handlers above. Make sure any new handlers or interceptors you've
- * defined are included below. The order matters - they're processed top to bottom 
- * */
-exports.handler = Alexa.SkillBuilders.custom()
+function getFinancingOption(financingOption) {
+    const opOne = ["1", "one", "real state", "estate", "commercial real estate", "real estate", "commercial"];
+    const opTwo = ["2", "two", "loans", "loan"];
+    const opThree = ["3", "three", "credits", "credit", "lines of credits", "line of credits", "lines of credit", "line of credit"];
+
+    if (opOne.includes(financingOption)) {
+        return "Commercial Real Estate";
+    } if (opTwo.includes(financingOption)) {
+        return "Loans";
+    } if (opThree.includes(financingOption)) {
+        return "Lines of Credit";
+    } else {
+        return null;
+    }
+}
+
+function getEmail(email) {
+    if (email === null || email === 'undefined') {
+        return null;
+    }
+    var atre = / at /gi;
+    var dotre = / dot /gi;
+    var newstr = email.replace(atre, "@");
+    return newstr.replace(dotre, ".");
+}
+
+// This interceptor function is used for localization.
+// It uses the i18n module, along with defined language
+// string to return localized content. It defaults to 'en'
+// if it can't find a matching language.
+const LocalizationInterceptor = {
+    process(handlerInput) {
+        const { requestEnvelope, attributesManager } = handlerInput;
+
+        const localizationClient = i18n.use(sprintf).init({
+            lng: requestEnvelope.request.locale,
+            fallbackLng: 'en-US',
+            resources: languageStrings,
+        });
+
+        localizationClient.localize = (...args) => {
+            // const args = arguments;
+            const values = [];
+
+            for (let i = 1; i < args.length; i += 1) {
+                values.push(args[i]);
+            }
+            const value = i18n.t(args[0], {
+                returnObjects: true,
+                postProcess: 'sprintf',
+                sprintf: values,
+            });
+
+            if (Array.isArray(value)) {
+                return value[Math.floor(Math.random() * value.length)];
+            }
+            return value;
+        };
+
+        const attributes = attributesManager.getRequestAttributes();
+        attributes.t = (...args) => localizationClient.localize(...args);
+    },
+};
+
+// This function establishes the primary key of the database as the skill id (hence you get global persistence, not per user id)
+function keyGenerator(requestEnvelope) {
+    if (requestEnvelope
+        && requestEnvelope.context
+        && requestEnvelope.context.System
+        && requestEnvelope.context.System.application
+        && requestEnvelope.context.System.application.applicationId) {
+        return requestEnvelope.request.requestId;
+    }
+    throw 'Cannot retrieve app id from request envelope!';
+}
+
+const skillBuilder = Alexa.SkillBuilders.custom();
+
+exports.handler = skillBuilder
     .addRequestHandlers(
+        InvalidConfigHandler,
         LaunchRequestHandler,
-        InProgressSmallBusinessLeadFormIntent,
-        ValidateContactNumber,
-        SmallBusinessLeadFormIntent,
+        InProgressLeadFormIntentHandler,
+        YesNoOptionIntentHandler,
+        EmailIntentHandler,
+        LeadFormIntentHandler,
         HelpIntentHandler,
         CancelAndStopIntentHandler,
-        FallbackIntentHandler,
-        SessionEndedRequestHandler,
-        IntentReflectorHandler)
-    .addErrorHandlers(
-        ErrorHandler)
-    .withCustomUserAgent('sample/hello-world/v1.2')
+        SessionEndedRequestHandler
+    )
+    .addRequestInterceptors(
+        LocalizationInterceptor
+    )
+    .addErrorHandlers(ErrorHandler)
+    .withPersistenceAdapter(
+        new ddbAdapter.DynamoDbPersistenceAdapter({
+            tableName: process.env.DYNAMODB_PERSISTENCE_TABLE_NAME,
+            createTable: false,
+            partitionKeyGenerator: keyGenerator,
+            dynamoDBClient: new AWS.DynamoDB({ apiVersion: 'latest', region: process.env.DYNAMODB_PERSISTENCE_REGION })
+        })
+    )
     .lambda();
