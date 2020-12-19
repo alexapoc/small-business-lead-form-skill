@@ -4,7 +4,6 @@ export const INTENT_NAMES = {
     FallBackIntent: "AMAZON.FallbackIntent",
     HelpIntent: "AMAZON.HelpIntent",
     YesIntent: "AMAZON.YesIntent",
-    ScheduleAppointment :"ScheduleAppointment",
-    NoIntent :"AMAZON.NoIntent",
-    CalculateInterest : "CalculateInterest"
+    NoIntent: "AMAZON.NoIntent",
+    LeadFormIntent: "SmallBusinessLeadFormIntent"
 };
