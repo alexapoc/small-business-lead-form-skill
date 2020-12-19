@@ -1,0 +1,266 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "small business lead form",
+            "modelConfiguration": {
+                "fallbackIntentSensitivity": {
+                    "level": "LOW"
+                }
+            },
+            "intents": [
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.NavigateHomeIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.FallbackIntent",
+                    "samples": []
+                },
+                {
+                    "name": "SmallBusinessLeadFormIntent",
+                    "slots": [
+                        {
+                            "name": "financingOption",
+                            "type": "FinancingOptions",
+                            "samples": [
+                                "I would be interested in {financingOption}",
+                                "I am interested in {financingOption}",
+                                "I'm interested in {financingOption}",
+                                "Interested in {financingOption}",
+                                "Option {financingOption}",
+                                "{financingOption}"
+                            ]
+                        },
+                        {
+                            "name": "firstName",
+                            "type": "AMAZON.FirstName"
+                        },
+                        {
+                            "name": "lastName",
+                            "type": "AMAZON.Person"
+                        },
+                        {
+                            "name": "contactNumber",
+                            "type": "AMAZON.PhoneNumber"
+                        },
+                        {
+                            "name": "yesNoOption",
+                            "type": "YesNoOption"
+                        },
+                        {
+                            "name": "emailAddress",
+                            "type": "AMAZON.SearchQuery"
+                        },
+                        {
+                            "name": "confirmContactNumber",
+                            "type": "YesNoOption"
+                        },
+                        {
+                            "name": "tempNumber",
+                            "type": "AMAZON.PhoneNumber"
+                        }
+                    ],
+                    "samples": [
+                        "{financingOption}",
+                        "my email is {emailAddress}",
+                        "Option {financingOption}",
+                        "Interested in {financingOption}",
+                        "I'm interested in {financingOption}",
+                        "I am interested in {financingOption}",
+                        "my first name is {firstName}",
+                        "my first name {firstName}",
+                        "my name {firstName}",
+                        "my name is {firstName}",
+                        "first name {firstName}",
+                        "my last name is {lastName}",
+                        "my last name {lastName}",
+                        "my name {lastName}",
+                        "my name is {lastName}",
+                        "last name {lastName}",
+                        "My mobile number is {contactNumber}",
+                        "Phone number is {contactNumber}",
+                        "My telephone number is {contactNumber}",
+                        "My contact number is {contactNumber}",
+                        "Contact number is {contactNumber}",
+                        "{tempNumber}"
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "name": "FinancingOptions",
+                    "values": [
+                        {
+                            "id": "1",
+                            "name": {
+                                "value": "Commercial Real Estate",
+                                "synonyms": [
+                                    "1",
+                                    "one",
+                                    "real state",
+                                    "estate",
+                                    "commercial real estate",
+                                    "real estate",
+                                    "commercial"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "2",
+                            "name": {
+                                "value": "Loans",
+                                "synonyms": [
+                                    "2",
+                                    "two",
+                                    "loans",
+                                    "loan"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "3",
+                            "name": {
+                                "value": "Lines of Credit",
+                                "synonyms": [
+                                    "3",
+                                    "three",
+                                    "credits",
+                                    "credit",
+                                    "lines of credits",
+                                    "line of credits",
+                                    "lines of credit",
+                                    "line of credit"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "YesNoOption",
+                    "values": [
+                        {
+                            "id": "2",
+                            "name": {
+                                "value": "No",
+                                "synonyms": [
+                                    "nah",
+                                    "nope",
+                                    "No",
+                                    "no"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "1",
+                            "name": {
+                                "value": "Yes",
+                                "synonyms": [
+                                    "yeah",
+                                    "yup",
+                                    "yep",
+                                    "sure",
+                                    "Yes",
+                                    "yes"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        "dialog": {
+            "intents": [
+                {
+                    "name": "SmallBusinessLeadFormIntent",
+                    "delegationStrategy": "ALWAYS",
+                    "confirmationRequired": false,
+                    "prompts": {},
+                    "slots": [
+                        {
+                            "name": "financingOption",
+                            "type": "FinancingOptions",
+                            "confirmationRequired": false,
+                            "elicitationRequired": true,
+                            "prompts": {
+                                "elicitation": "Elicit.Slot.1551602577128.591305005378"
+                            }
+                        },
+                        {
+                            "name": "firstName",
+                            "type": "AMAZON.FirstName",
+                            "confirmationRequired": false,
+                            "elicitationRequired": false,
+                            "prompts": {}
+                        },
+                        {
+                            "name": "lastName",
+                            "type": "AMAZON.Person",
+                            "confirmationRequired": false,
+                            "elicitationRequired": false,
+                            "prompts": {}
+                        },
+                        {
+                            "name": "contactNumber",
+                            "type": "AMAZON.PhoneNumber",
+                            "confirmationRequired": false,
+                            "elicitationRequired": false,
+                            "prompts": {}
+                        },
+                        {
+                            "name": "yesNoOption",
+                            "type": "YesNoOption",
+                            "confirmationRequired": false,
+                            "elicitationRequired": false,
+                            "prompts": {}
+                        },
+                        {
+                            "name": "emailAddress",
+                            "type": "AMAZON.SearchQuery",
+                            "confirmationRequired": false,
+                            "elicitationRequired": false,
+                            "prompts": {}
+                        },
+                        {
+                            "name": "confirmContactNumber",
+                            "type": "YesNoOption",
+                            "confirmationRequired": false,
+                            "elicitationRequired": false,
+                            "prompts": {}
+                        },
+                        {
+                            "name": "tempNumber",
+                            "type": "AMAZON.PhoneNumber",
+                            "confirmationRequired": false,
+                            "elicitationRequired": false,
+                            "prompts": {}
+                        }
+                    ]
+                }
+            ],
+            "delegationStrategy": "ALWAYS"
+        },
+        "prompts": [
+            {
+                "id": "Elicit.Slot.1551602577128.591305005378",
+                "variations": [
+                    {
+                        "type": "PlainText",
+                        "value": "What is the financing option that interests you. Commercial Real Estate or say one, Loans or say two, Lines of Credit or say three ?"
+                    }
+                ]
+            }
+        ]
+    }
+}

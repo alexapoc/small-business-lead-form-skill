@@ -1,13 +1,50 @@
 {
-  "name": "small-business-lead-form-skill",
-  "version": "1.2.0",
-  "description": "small-business-lead-form-skill",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Amazon Alexa",
+  "name": "alexa_nodejs-typescript-boilerplate",
+  "version": "1.0.0",
   "license": "MIT",
+  "main": "src/index.ts",
+  "scripts": {
+    "lint": "tslint src/**/*.ts test/**/*.ts",
+    "debug": "node --inspect --nolazy node_modules/serverless/bin/serverless offline start -t -l .webpack/service/src/index.js",
+    "build:webpack": "shx rm -rf ./dist && node node_modules/serverless/bin/serverless webpack --out dist -d",
+    "build:tsc": "shx rm -rf ./tsc && tsc",
+    "prebuild": "npm install",
+    "build": "npm run build:webpack",
+    "prepackage": "npm run build",
+    "package": "shx rm -rf bulid && shx mkdir -p build && shx cp ./.serverless/*.zip ./build/",
+    "predeploy": "npm run build",
+    "deploy": "serverless deploy",
+    "test": "SET NODE_ENV=test && node ./node_modules/mocha/bin/_mocha --require ts-node/register --require source-map-support/register --recursive \"spec/**/*.spec.ts\"",
+    "test:withCoverage": "SET NODE_ENV=test && node ./node_modules/nyc/bin/nyc --reporter=html --reporter=text ./node_modules/mocha/bin/_mocha --require ts-node/register --require source-map-support/register --recursive \"spec/**/*.spec.ts\""
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.7",
+    "@types/dateformat": "^3.0.1",
+    "@types/i18next-sprintf-postprocessor": "^0.2.0",
+    "@types/lodash": "^4.14.149",
+    "@types/mocha": "^5.2.7",
+    "@types/moment": "^2.13.0",
+    "@types/node": "^13.1.5",
+    "@types/randomstring": "^1.1.6",
+    "chai": "^4.2.0",
+    "libphonenumber-js": "^1.9.6",
+    "lodash": "^4.17.15",
+    "mocha": "^7.0.0",
+    "nyc": "^15.0.0",
+    "randomstring": "^1.1.5",
+    "serverless": "^1.60.5",
+    "serverless-bespoken": "^1.1.0",
+    "serverless-offline": "^5.12.1",
+    "serverless-webpack": "^5.3.1",
+    "shx": "^0.3.2",
+    "source-map-support": "^0.5.16",
+    "ts-loader": "^6.2.1",
+    "ts-node": "^8.6.0",
+    "tslint": "^5.20.1",
+    "typescript": "^3.7.4",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10"
+  },
   "dependencies": {
     "ask-sdk-core": "^2.7.0",
     "ask-sdk-model": "^1.19.0",
@@ -19,6 +56,26 @@
     "email-validator": "^2.0.4",
     "aws-sdk": "^2.637.0",
     "ask-sdk": "^2.10.0",
-    "ask-sdk-dynamodb-persistence-adapter": "^2.10.0"
+    "ask-sdk-dynamodb-persistence-adapter": "^2.10.0",
+    "crypto-js": "^3.1.9-1",
+    "moment": "^2.24.0"
+  },
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "include": [
+      "src/**/*.*",
+      "src/*.ts[x]"
+    ],
+    "exclude": [
+      "**/*.d.ts"
+    ],
+    "reporter": [
+      "html"
+    ],
+    "all": true,
+    "cache": false
   }
 }

@@ -1,0 +1,46 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch via NPM",
+      "runtimeExecutable": "npm",
+      "sourceMaps": true,
+      "cwd": "${workspaceFolder}/lambda",
+      "env":{
+            "NODE_PATH": "${workspaceFolder}/lambda"
+        },
+      "runtimeArgs": [
+        "run-script",
+        "debug"
+      ],
+      "port": 9229
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Mocha Current File",
+      "cwd": "${workspaceFolder}/lambda",
+      "env":{
+        "NODE_PATH": "${workspaceFolder}/lambda"
+    },
+      "sourceMaps": true,
+      "program": "${workspaceFolder}/lambda/node_modules/mocha/bin/_mocha",
+      "args": [
+          "--require",
+          "ts-node/register", 
+          "--timeout",
+          "999999",
+          "--colors",
+          "${file}"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "protocol": "inspector"
+  }
+  ]
+}
