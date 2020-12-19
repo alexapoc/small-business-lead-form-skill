@@ -1,17 +1,22 @@
-import { HandlerInput, getSlotValue } from "ask-sdk-core";
-import  dateFormat from "dateformat";
+import { HandlerInput, getSlotValue, getUserId, getLocale, getDeviceId } from "ask-sdk-core";
+import { Request, Session } from "ask-sdk-model";
+import dateFormat from "dateformat";
 
 import { LeadFormModel } from "../model/LeadFormModel";
 
 export module LeadFormUtil {
 
     export async function saveLeadForm(handlerInput: HandlerInput): Promise<any> {
-        const session = handlerInput.requestEnvelope.session;
+       
+       
+       // const {sessionId} = handlerInput.requestEnvelope.session?.sessionId ;
+        
         const leadFormModel: LeadFormModel = {
-            //   sessionId: session.sessionId,
-            //  applicationId: session.application.applicationId,
-            //   userId: session.user.userId,
-            locale: handlerInput.requestEnvelope.request.locale,
+             // sessionId:  .sessionId,
+            //applicationId: session.application.applicationId,
+            deviceId: getDeviceId(handlerInput.requestEnvelope),
+            userId: getUserId(handlerInput.requestEnvelope),
+            locale: getLocale(handlerInput.requestEnvelope),
             createDateTime: dateFormat(new Date(), 'mm/dd/yyyy HH:MM:ss'),
             financingOption: getFinancingOption(getSlotValue(handlerInput.requestEnvelope, 'financingOption')),
             firstName: getSlotValue(handlerInput.requestEnvelope, 'firstName'),
@@ -44,7 +49,7 @@ export module LeadFormUtil {
         return "";
     }
 
-   export function getEmail(email: string) {
+    export function getEmail(email: string) {
         if (!email) {
             return email;
         }
