@@ -3,8 +3,6 @@ import { languageStrings } from "./languages/languageStrings";
 import i18next from "i18next";
 import sprintf from "i18next-sprintf-postprocessor";
 
-type TranslationFunction = (...args: any[]) => string;
-
 // This interceptor function is used for localization.
 // It uses the i18n module, along with defined language
 // string to return localized content. It defaults to 'en'
@@ -17,19 +15,17 @@ export class LocalizationInterceptor implements RequestInterceptor {
             fallbackLng: 'en-US',
             resources: languageStrings,
             overloadTranslationOptionHandler: sprintf.overloadTranslationOptionHandler,
-       //     returnObjects: true,
+            returnObjects: true,
         });
-
-        // const attributes = handlerInput.attributesManager.getRequestAttributes();
-        // attributes.t = function (...args: any[]) {
-        //     return (localizationClient..t as TranslationFunction)(...args);
-        // };
-        // attributes.tr = function (key: any) {
-        //     const result = localizationClient.t(key) as string[];
-        //     return Random(result);
-        // };
         const attributes = handlerInput.attributesManager.getRequestAttributes();
-        attributes.t = (args: any) => localizationClient(args);
+
+        attributes.t = (key: string, ...args: any[]) => {
+            const result = localizationClient(key,...args) as unknown;
+            if (Array.isArray(result)) {
+                return Random(result as string[]);
+            }
+            return result;
+        } ;
     }
 }
 

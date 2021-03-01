@@ -41,6 +41,7 @@ build/
 lambda.config.js
 # TypeScript v1 declaration files
 typings/
+.tsc/
 
 # Optional npm cache directory
 .npm

@@ -12,7 +12,8 @@
       "sourceMaps": true,
       "cwd": "${workspaceFolder}/lambda",
       "env":{
-            "NODE_PATH": "${workspaceFolder}/lambda"
+            "NODE_PATH": "${workspaceFolder}/lambda",
+            "DYNAMODB_LOCAL": "true"
         },
       "runtimeArgs": [
         "run-script",

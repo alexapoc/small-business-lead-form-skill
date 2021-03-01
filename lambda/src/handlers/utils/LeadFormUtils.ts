@@ -1,35 +1,37 @@
 import { HandlerInput, getSlotValue, getUserId, getLocale, getDeviceId } from "ask-sdk-core";
-import { Request, Session } from "ask-sdk-model";
-import dateFormat from "dateformat";
-
 import { LeadFormModel } from "../model/LeadFormModel";
+import { Logger } from "./Logger";
 
-export module LeadFormUtil {
+export module LeadFormUtils {
 
     export async function saveLeadForm(handlerInput: HandlerInput): Promise<any> {
-       
-       
-       // const {sessionId} = handlerInput.requestEnvelope.session?.sessionId ;
-        
+        Logger.log("Inside saveLeadForm method .. ");
+
         const leadFormModel: LeadFormModel = {
-             // sessionId:  .sessionId,
-            //applicationId: session.application.applicationId,
+            sessionId: handlerInput.requestEnvelope.session?.sessionId,
+            applicationId: handlerInput.requestEnvelope.session?.application.applicationId,
             deviceId: getDeviceId(handlerInput.requestEnvelope),
             userId: getUserId(handlerInput.requestEnvelope),
-            locale: getLocale(handlerInput.requestEnvelope),
-            createDateTime: dateFormat(new Date(), 'mm/dd/yyyy HH:MM:ss'),
+            language: getLocale(handlerInput.requestEnvelope),
             financingOption: getFinancingOption(getSlotValue(handlerInput.requestEnvelope, 'financingOption')),
             firstName: getSlotValue(handlerInput.requestEnvelope, 'firstName'),
             lastName: getSlotValue(handlerInput.requestEnvelope, 'lastName'),
             contactNumber: getSlotValue(handlerInput.requestEnvelope, 'contactNumber'),
-            emailValue: getEmail(getSlotValue(handlerInput.requestEnvelope, 'emailAddress'))
+            emailValue: getEmail(getSlotValue(handlerInput.requestEnvelope, 'emailAddress')),
+            leadFormDateTime: handlerInput.requestEnvelope.request.timestamp
         }
+
+        Logger.debug("Lead form JSON == > " + JSON.stringify(leadFormModel));
 
         const attributesManager = handlerInput.attributesManager;
         attributesManager.setPersistentAttributes(leadFormModel);
-        await attributesManager.savePersistentAttributes();
 
-        console.log("Data saved to dynamo DB == > " + JSON.stringify(leadFormModel));
+        try {
+            await attributesManager.savePersistentAttributes();
+            Logger.log("Lead form data saved to dynamo DB");
+        } catch (error) {
+            Logger.error("Exception while saving lead form ==> " + JSON.stringify(error));
+        }
     }
 
     export function getFinancingOption(financingOption: string) {
@@ -50,9 +52,7 @@ export module LeadFormUtil {
     }
 
     export function getEmail(email: string) {
-        if (!email) {
-            return email;
-        }
+        if (!email) { return email; }
         var atre = / at /gi;
         var dotre = / dot /gi;
         var newstr = email.replace(atre, "@");
@@ -60,11 +60,10 @@ export module LeadFormUtil {
     }
 
     export function getYesNoSynonym(yesNoValue: string) {
-        const opYes = ["Yes", "yes", "yep", "yup", "YES", "ya", "yeah", 'yea', 'sure'];
+        const opYes = ["Yes", "yes", "yep", "yup", "YES", "ya", "yeah", 'yea', 'sure', 'why not', 'yes please'];
         if (opYes.includes(yesNoValue)) {
             return "Yes";
-        } else
-            return 'No';
+        } else { return 'No'; }
     }
 
 }
