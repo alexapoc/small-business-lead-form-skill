@@ -29,6 +29,6 @@ export class LocalizationInterceptor implements RequestInterceptor {
     }
 }
 
-export function Random<T>(arr: T[]): T {
+function Random<T>(arr: T[]): T {
     return arr[Math.floor(Math.random() * arr.length)];
 }

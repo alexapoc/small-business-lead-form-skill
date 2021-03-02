@@ -1,15 +1,11 @@
-/**
- * 
- */
-import { HandlerInput, RequestHandler, getRequestType, getSlotValue, getIntentName, getDialogState } from "ask-sdk-core";
+import { HandlerInput, RequestHandler, getRequestType, getSlotValue, getIntentName } from "ask-sdk-core";
 import { Response } from "ask-sdk-model";
 import EmailValidator from "email-validator";
 import { parse, isValidNumber } from "libphonenumber-js";
 import { LeadFormUtils } from "../utils/LeadFormUtils";
 import { Logger } from "../utils/Logger";
-/**
- * 
- */
+import { SendMail } from "../utils/SendMail";
+
 export class LeadFormIntentHandler implements RequestHandler {
 
     canHandle(handlerInput: HandlerInput): boolean {
@@ -174,16 +170,27 @@ function confirmContactNumber(handlerInput: HandlerInput): Response {
     }
 }
 
+/**
+ * Save the Lead form if the email address is valid. 
+ * If not valid then prompt the user about invalid email and ask for email address again.
+ * @param handlerInput 
+ */
 function saveLeadFormIfValidEmail(handlerInput: HandlerInput): Response {
     const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
     const envelope = handlerInput.requestEnvelope;
-    const email = LeadFormUtils.getEmail(getSlotValue(envelope, "emailAddress"));
+
+    let email = getSlotValue(envelope, "emailAddress");
+    Logger.debug("raw email input from alexa ==> " + email);
+    email = LeadFormUtils.getEmail(email).replace(/\s/g, '');
+
     const isValid = EmailValidator.validate(email);
     Logger.debug("email ==> " + email + " and isValid ==> " + isValid);
 
     if (isValid) {
         Logger.log("Saving lead form with email address");
-        LeadFormUtils.saveLeadForm(handlerInput)
+        LeadFormUtils.saveLeadForm(handlerInput);
+
+        SendMail.send(handlerInput.attributesManager, email, getSlotValue(envelope, "firstName"), getSlotValue(envelope, "contactNumber"));
 
         return handlerInput.responseBuilder
             .speak(requestAttributes.t('LEAD_FORM_CONFIRM'))
